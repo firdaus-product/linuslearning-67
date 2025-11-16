@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ms-MY">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kemahiran Pemulihan: Masa dan Waktu (Pembelajaran)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { box-sizing: border-box; }
+    .activity-card { min-height: 400px; }
+    .number-card { transition: all .3s ease; cursor: pointer; }
+    .number-card:hover { transform: scale(1.05); }
+    .dragging { opacity: .5; transform: rotate(5deg); }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      transition: all .3s ease;
+      min-width: 60px;
+      min-height: 60px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .drop-zone.drag-over { border-color: #3b82f6; background-color: #eff6ff; }
+
+    /* Salah */
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+    .shake { animation: shake 0.5s ease; }
+
+    /* Zon sudah diisi */
+    .drop-zone-filled {
+      border-style: solid;
+      border-color: #4ade80;
+      background-color: #f0fdf4;
+    }
+    
+    /* Aktiviti 3: Animasi Mesin */
+    @keyframes machine-vibrate {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(-1px, 1px); }
+      50% { transform: translate(1px, -1px); }
+      75% { transform: translate(-1px, 0); }
+      100% { transform: translate(0, 0); }
+    }
+    .machine-active {
+      animation: machine-vibrate 0.2s 3 linear;
+    }
+    @keyframes item-out {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .item-out {
+      animation: item-out 0.5s ease-out;
+    }
+    
+    /* Aktiviti 4: Rantai Hari */
+    .chain-link {
+      border: 2px solid #e5e7eb;
+      background-color: #f9fafb;
+    }
+    .chain-link-filled {
+      border: 2px solid #22c55e;
+      background-color: #f0fdf4;
+      color: #166534;
+    }
+
+    /* Aktiviti 5: Jam Analog */
+    .clock-face {
+      width: 200px;
+      height: 200px;
+      border: 8px solid #334155;
+      border-radius: 50%;
+      position: relative;
+      margin: 20px auto;
+      background-color: #f8fafc;
+      /* Tambah ini untuk rujukan fon */
+      font-size: 1.2rem;
+    }
+    /* === GAYA BARU UNTUK NOMBOR JAM === */
+    .clock-number {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0; left: 0;
+      text-align: center;
+    }
+    .clock-number span {
+      display: inline-block;
+      font-weight: 600;
+      color: #334155;
+      padding-top: 8px; /* Jarak nombor dari pusat */
+      box-sizing: border-box;
+      font-size: 1.1rem; /* Saiz fon nombor */
+    }
+    /* === AKHIR GAYA BARU === */
+    
+    .clock-center {
+      width: 12px;
+      height: 12px;
+      background: #334155;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+    .clock-hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      transition: transform 0.2s ease-out;
+      z-index: 5; /* Pastikan jarum di atas nombor */
+    }
+    .hour-hand {
+      width: 8px;
+      height: 60px;
+      background: #1e293b;
+      margin-left: -4px;
+    }
+    .minute-hand {
+      width: 6px;
+      height: 80px;
+      background: #3b82f6;
+      margin-left: -3px;
+    }
+    .second-hand {
+      width: 3px;
+      height: 90px;
+      background: #ef4444;
+      margin-left: -1.5px;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-full">
+
+  <div class="bg-yellow-100 border-b-4 border-yellow-300 p-4 shadow-sm sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">📚</span>
+        <span id="info-text" class="text-lg font-semibold text-gray-800">
+          Pilih aktiviti untuk mula belajar Masa dan Waktu!
+        </span>
+      </div>
+      <button id="speak-btn"
+              class="bg-yellow-300 hover:bg-yellow-400 text-yellow-800 font-bold py-2 px-4 rounded-full text-xl transition-colors duration-200"
+              onclick="speakInfo()">
+        🔊
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto p-6">
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 activity-card flex items-center justify-center">
+      <div id="activity-content" class="text-center w-full">
+        <div class="py-16">
+          <div class="text-6xl mb-4">⏱️</div>
+          <h2 class="text-3xl font-bold text-gray-800 mb-4">
+            Kemahiran Pemulihan: Masa dan Waktu
+          </h2>
+          <p class="text-xl text-gray-600 mb-8">
+            Pilih aktiviti di bawah untuk meneroka unit masa secara santai.
+          </p>
+          <div class="text-4xl">👇</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Pilih Aktiviti</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <button onclick="loadActivity(1)"
+                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          ⏱️ Jam (Saat ke Minit)
+        </button>
+        <button onclick="loadActivity(2)"
+                class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          🗓️ Susun Kalendar
+        </button>
+        <button onclick="loadActivity(3)"
+                class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          ⚙️ Mesin Penukar Hari
+        </button>
+        <button onclick="loadActivity(4)"
+                class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          🔗 Rantai Hari (Urutan)
+        </button>
+        <button onclick="loadActivity(5)"
+                class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          🕹️ Teroka Jam (Lengkap)
+        </button>
+      </div>
+
+      <div class="flex justify-center gap-4">
+        <button onclick="clearActivity()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors duration-200">
+          🧹 Bersih
+        </button>
+        <button onclick="nextActivity()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors duration-200">
+          ➡️ Seterusnya
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentActivity = 0;
+    let ttsEnabled = false;
+    let currentInfo = "Pilih aktiviti untuk mula belajar Masa dan Waktu!";
+    let draggedElement = null;
+
+    // State untuk Aktiviti 1
+    let kaunterMinit = 0;
+    let kaunterSaat = 0;
+    
+    // State untuk Aktiviti 4
+    const HARI_NAMA = ["Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu", "Ahad"];
+    let nextCorrectDay = "Selasa"; // Urutan bermula selepas Isnin
+
+    /* ====== TTS ====== */
+    function speak(text) {
+      if (!ttsEnabled) return;
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      setTimeout(() => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ms-MY';
+        u.rate = 0.9; u.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const ms = voices.find(v => v.lang === 'ms-MY' || v.lang?.startsWith('ms'));
+        if (ms) u.voice = ms;
+        window.speechSynthesis.speak(u);
+      }, 100);
+    }
+    function setInfo(text) { currentInfo = text; document.getElementById('info-text').textContent = text; }
+    function speakInfo() {
+      if (!ttsEnabled) {
+        ttsEnabled = true;
+        const btn = document.getElementById('speak-btn');
+        btn.classList.add('bg-green-300', 'hover:bg-green-400');
+        btn.classList.remove('bg-yellow-300', 'hover:bg-yellow-400');
+      }
+      speak(currentInfo);
+    }
+
+    /* ====== DnD helpers ====== */
+    function dragStart(e) { draggedElement = e.target; e.target.classList.add('dragging'); }
+    function dragEnd(e) { e.target.classList.remove('dragging'); document.querySelectorAll('.drop-zone').forEach(z=>z.classList.remove('drag-over')); }
+    function allowDrop(e) { e.preventDefault(); if (e.currentTarget.classList.contains('drop-zone')) e.currentTarget.classList.add('drag-over'); }
+    function dragLeave(e) { if (e.currentTarget.classList.contains('drop-zone')) e.currentTarget.classList.remove('drag-over'); }
+
+    /* ====== Router ====== */
+    function loadActivity(n) {
+      currentActivity = n;
+      const content = document.getElementById('activity-content');
+      if (n === 1) return loadJamSaatMinit(content);
+      if (n === 2) return loadKalendarBulan(content);
+      if (n === 3) return loadMesinPenukarHari(content);
+      if (n === 4) return loadRantaiHari(content);
+      if (n === 5) return loadTerokaJam(content);
+    }
+
+    /* ====== Aktiviti 1: Jam (Saat ke Minit) ====== */
+    function loadJamSaatMinit(content) {
+      setInfo("Klik butang untuk menambah saat. Perhatikan apa berlaku apabila cukup 60 saat.");
+      kaunterMinit = 0;
+      kaunterSaat = 0;
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-blue-600 mb-6">⏱️ Eksplorasi: Saat ke Minit</h3>
+        <p class="text-lg text-gray-700 mb-6">Ingat: <strong>1 Minit = 60 Saat</strong></p>
+        
+        <div class="flex justify-center gap-6 mb-8">
+          <div class="bg-blue-100 border-2 border-blue-300 rounded-xl p-6 text-center">
+            <div class="text-sm font-bold text-blue-800 uppercase">MINIT</div>
+            <div id="kaunter-minit" class="text-6xl font-bold text-blue-800">0</div>
+          </div>
+          <div class="bg-red-100 border-2 border-red-300 rounded-xl p-6 text-center">
+            <div class="text-sm font-bold text-red-800 uppercase">SAAT</div>
+            <div id="kaunter-saat" class="text-6xl font-bold text-red-800">0</div>
+          </div>
+        </div>
+        
+        <div class="flex flex-wrap justify-center gap-4">
+          <button onclick="tambahSaat(1)" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg text-lg">+ 1 Saat</button>
+          <button onclick="tambahSaat(10)" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg text-lg">+ 10 Saat</button>
+          <button onclick="tambahSaat(60)" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg text-lg">+ 60 Saat (1 Minit)</button>
+          <button onclick="setSemulaKaunter()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-lg">Set Semula</button>
+        </div>
+      `;
+    }
+    function updateKaunterUI() {
+      document.getElementById('kaunter-minit').textContent = kaunterMinit;
+      document.getElementById('kaunter-saat').textContent = kaunterSaat;
+    }
+    function tambahSaat(n) {
+      kaunterSaat += n;
+      let mesej = `${n} saat ditambah.`;
+      if (kaunterSaat >= 60) {
+        let minitBaru = Math.floor(kaunterSaat / 60);
+        kaunterMinit += minitBaru;
+        kaunterSaat = kaunterSaat % 60;
+        mesej = `Cukup ${minitBaru*60} saat! Tukar kepada ${minitBaru} minit.`;
+        setInfo(mesej);
+        speak(mesej);
+      }
+      updateKaunterUI();
+    }
+    function setSemulaKaunter() {
+      kaunterMinit = 0;
+      kaunterSaat = 0;
+      updateKaunterUI();
+      setInfo("Kaunter diset semula. Jom cuba lagi!");
+      speak("Kaunter diset semula.");
+    }
+
+    /* ====== Aktiviti 2: Kalendar (Bulan ke Tahun) ====== */
+    function loadKalendarBulan(content) {
+      setInfo("Seret 12 bulan ke dalam petak mengikut urutan yang betul.");
+      const BULAN = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+      const shuffled = [...BULAN].sort(() => Math.random() - 0.5);
+
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-green-600 mb-6">🗓️ Susun Kalendar: 1 Tahun = 12 Bulan</h3>
+        <div class="mb-8">
+          <h4 class="text-lg font-semibold mb-3">Pilih kad bulan:</h4>
+          <div id="bulan-bank" class="flex flex-wrap justify-center gap-2">
+            ${shuffled.map(bulan => `
+              <div class="number-card bg-green-100 border-2 border-green-300 rounded-lg py-2 px-3 text-base font-bold text-green-800 cursor-move"
+                   draggable="true" ondragstart="dragStart(event)" ondragend="dragEnd(event)" data-bulan="${bulan}">
+                ${bulan}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-3">Letakkan di sini (Ikut urutan):</h4>
+          <div id="kalendar-grid" class="grid grid-cols-3 md:grid-cols-4 gap-2 bg-gray-100 p-3 rounded-lg">
+            ${BULAN.map((bulan, index) => `
+              <div class="drop-zone rounded-lg p-3 text-lg font-bold h-16 flex items-center justify-center" 
+                   ondrop="dropOnKalendar(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" 
+                   data-correct="${bulan}">
+                <span class="text-gray-400">${index + 1}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    function dropOnKalendar(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      if (!draggedElement) return;
+      const draggedBulan = draggedElement.dataset.bulan;
+      const correctBulan = e.currentTarget.dataset.correct;
+
+      if (draggedBulan === correctBulan) {
+        e.currentTarget.innerHTML = draggedBulan;
+        e.currentTarget.classList.add('drop-zone-filled', 'bg-green-100', 'text-green-800');
+        e.currentTarget.classList.remove('drop-zone');
+        e.currentTarget.removeAttribute('ondrop');
+        draggedElement.remove();
+        draggedElement = null;
+        const msg = `Betul! ${draggedBulan} diletakkan.`;
+        setInfo(msg);
+        speak(msg);
+        if (document.querySelectorAll('#kalendar-grid .drop-zone').length === 0) {
+          setInfo("Syabas! Kalendar lengkap! 12 Bulan = 1 Tahun.");
+          speak("Syabas! Kalendar lengkap! 12 Bulan sama dengan 1 Tahun.");
+        }
+      } else {
+        setInfo(`Bukan di situ. Cuba lagi.`);
+        speak(`Bukan di situ. Cuba lagi.`);
+        e.currentTarget.classList.add('shake');
+        setTimeout(() => e.currentTarget.classList.remove('shake'), 500);
+      }
+    }
+
+    /* ====== Aktiviti 3: Mesin Penukar Hari ====== */
+    function loadMesinPenukarHari(content) {
+      setInfo("Seret 7 token 'HARI' ☀️ ke dalam mesin untuk cipta 1 'MINGGU' 📦.");
+      
+      let dayTokens = '';
+      for(let i=0; i<14; i++) { // Sediakan 14 token (cukup untuk 2 minggu)
+        dayTokens += `
+          <div class="number-card bg-yellow-100 border-2 border-yellow-300 rounded-full p-3 text-2xl font-bold text-yellow-800 cursor-move"
+               draggable="true" ondragstart="dragStart(event)" ondragend="dragEnd(event)">
+            ☀️
+          </div>`;
+      }
+
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-purple-600 mb-6">⚙️ Mesin Penukar Hari</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          
+          <div class="bg-purple-50 p-4 rounded-xl">
+            <h4 class="text-lg font-semibold mb-3">Bank Hari (Ambil dari sini):</h4>
+            <div id="mesin-bank-hari" class="flex flex-wrap justify-center gap-2">
+              ${dayTokens}
+            </div>
+          </div>
+          
+          <div class="bg-gray-100 p-4 rounded-xl text-center">
+            <h4 class="text-lg font-semibold mb-3">Mesin:</h4>
+            <div id="mesin-drop-zone" 
+                 class="drop-zone rounded-lg p-6 min-h-32 flex flex-col items-center justify-center bg-gray-200 text-gray-800 font-bold"
+                 ondrop="dropOnMesin(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"
+                 data-current="0">
+              <span class="text-4xl">⚙️</span>
+              <span id="mesin-kaunter" class="text-2xl">[ 0 / 7 ]</span>
+            </div>
+          </div>
+          
+          <div class="bg-purple-50 p-4 rounded-xl">
+            <h4 class="text-lg font-semibold mb-3">Hasil Minggu (Keluar di sini):</h4>
+            <div id="mesin-hasil-minggu" class="flex flex-wrap justify-center gap-2 min-h-32">
+              </div>
+          </div>
+          
+        </div>
+      `;
+    }
+    
+    function dropOnMesin(e) {
+      e.preventDefault();
+      const dropZone = e.currentTarget;
+      dropZone.classList.remove('drag-over');
+      if (!draggedElement) return;
+
+      draggedElement.remove(); // Musnahkan token hari
+      draggedElement = null;
+
+      let current = parseInt(dropZone.dataset.current) + 1;
+      dropZone.dataset.current = current;
+      dropZone.classList.add('machine-active');
+      setTimeout(()=> dropZone.classList.remove('machine-active'), 600);
+      
+      const kaunterSpan = document.getElementById('mesin-kaunter');
+      kaunterSpan.textContent = `[ ${current} / 7 ]`;
+      
+      const msg = `${current} hari dimasukkan.`;
+      setInfo(msg);
+      speak(`${current}.`);
+
+      if (current === 7) {
+        dropZone.dataset.current = 0;
+        kaunterSpan.textContent = `[ 0 / 7 ]`;
+        
+        const hasilTray = document.getElementById('mesin-hasil-minggu');
+        const mingguBaru = document.createElement('div');
+        mingguBaru.className = 'item-out number-card bg-purple-200 border-2 border-purple-400 rounded-lg p-3 text-lg font-bold text-purple-800';
+        mingguBaru.innerHTML = '📦 1 MINGGU';
+        hasilTray.appendChild(mingguBaru);
+        
+        const finalMsg = "Cukup 7 hari! Mesin cipta 1 Minggu!";
+        setInfo(finalMsg);
+        speak("Cukup 7 hari! Mesin cipta 1 Minggu!");
+      }
+    }
+    
+    /* ====== Aktiviti 4: Rantai Hari ====== */
+    function loadRantaiHari(content) {
+      setInfo("Sambung rantai hari mengikut urutan yang betul. Mula dengan 'Selasa'.");
+      nextCorrectDay = "Selasa"; // Reset
+      
+      const daysToShuffle = HARI_NAMA.slice(1); // Semua kecuali Isnin
+      const shuffled = daysToShuffle.sort(() => Math.random() - 0.5);
+
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-orange-600 mb-6">🔗 Rantai Hari (Ikut Urutan)</h3>
+        
+        <div class="mb-8">
+          <h4 class="text-lg font-semibold mb-3">Rantai (Sambung di sini):</h4>
+          <div id="rantai-container" class="flex flex-wrap items-center justify-center gap-2 text-lg font-bold">
+            <div class="chain-link-filled rounded-lg py-3 px-4">ISNIN</div>
+            <span class="text-gray-400">➡️</span>
+            
+            <div class="drop-zone chain-link rounded-lg py-3 px-4 min-w-24" ondrop="dropOnRantai(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" data-correct="Selasa">__</div>
+            <span class="text-gray-400">➡️</span>
+            <div class="drop-zone chain-link rounded-lg py-3 px-4 min-w-24" ondrop="dropOnRantai(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" data-correct="Rabu">__</div>
+            <span class.text-gray-400">➡️</span>
+            <div class="drop-zone chain-link rounded-lg py-3 px-4 min-w-24" ondrop="dropOnRantai(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" data-correct="Khamis">__</div>
+            <span class="text-gray-400">➡️</span>
+            <div class="drop-zone chain-link rounded-lg py-3 px-4 min-w-24" ondrop="dropOnRantai(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" data-correct="Jumaat">__</div>
+            <span class="text-gray-400">➡️</span>
+            <div class="drop-zone chain-link rounded-lg py-3 px-4 min-w-24" ondrop="dropOnRantai(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" data-correct="Sabtu">__</div>
+            <span class="text-gray-400">➡️</span>
+            <div class="drop-zone chain-link rounded-lg py-3 px-4 min-w-24" ondrop="dropOnRantai(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" data-correct="Ahad">__</div>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-lg font-semibold mb-3">Pilihan Hari (Seret dari sini):</h4>
+          <div id="rantai-bank-hari" class="flex flex-wrap justify-center gap-3">
+            ${shuffled.map(hari => `
+              <div class="number-card bg-orange-100 border-2 border-orange-300 rounded-lg py-3 px-4 text-lg font-bold text-orange-800 cursor-move"
+                   draggable="true" ondragstart="dragStart(event)" ondragend="dragEnd(event)" data-hari="${hari}">
+                ${hari.toUpperCase()}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    function dropOnRantai(e) {
+      e.preventDefault();
+      const dropZone = e.currentTarget;
+      dropZone.classList.remove('drag-over');
+      if (!draggedElement) return;
+
+      const draggedDay = draggedElement.dataset.hari;
+      const correctDay = dropZone.dataset.correct;
+
+      if (draggedDay === correctDay && draggedDay === nextCorrectDay) {
+        dropZone.innerHTML = draggedDay.toUpperCase();
+        dropZone.classList.add('chain-link-filled');
+        dropZone.classList.remove('drop-zone');
+        dropZone.removeAttribute('ondrop');
+        draggedElement.remove();
+        draggedElement = null;
+        
+        const currentIndex = HARI_NAMA.indexOf(draggedDay);
+        if (currentIndex < 6) { // Jika bukan Ahad
+          nextCorrectDay = HARI_NAMA[currentIndex + 1];
+          const msg = `Betul! ${draggedDay} disambung. Sekarang cari ${nextCorrectDay}.`;
+          setInfo(msg);
+          speak(msg);
+        } else { // Jika Ahad
+          nextCorrectDay = null; // Selesai
+          const msg = "Syabas! Rantai lengkap! 7 hari mengikut urutan.";
+          setInfo(msg);
+          speak("Syabas! Rantai 1 Minggu lengkap!");
+        }
+      } else {
+        let msg = `Bukan di situ. Cuba lagi.`;
+        if (draggedDay !== nextCorrectDay) {
+          msg = `Bukan ${draggedDay}. Cuba cari ${nextCorrectDay} dahulu.`;
+        }
+        setInfo(msg);
+        speak(msg);
+        dropZone.classList.add('shake');
+        setTimeout(() => dropZone.classList.remove('shake'), 500);
+      }
+    }
+    
+    /* ====== Aktiviti 5: Teroka Jam Analog (DIKEMASKINI) ====== */
+    function loadTerokaJam(content) {
+      setInfo("Guna peluncur (slider) untuk gerakkan jarum Jam, Minit, dan Saat.");
+      
+      // === HTML BARU DENGAN NOMBOR ===
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-red-600 mb-4">🕹️ Teroka Jam Analog (Lengkap)</h3>
+        
+        <div class="clock-face">
+          <div class="clock-number" style="transform: rotate(30deg);"><span style="transform: rotate(-30deg);">1</span></div>
+          <div class="clock-number" style="transform: rotate(60deg);"><span style="transform: rotate(-60deg);">2</span></div>
+          <div class="clock-number" style="transform: rotate(90deg);"><span style="transform: rotate(-90deg);">3</span></div>
+          <div class="clock-number" style="transform: rotate(120deg);"><span style="transform: rotate(-120deg);">4</span></div>
+          <div class="clock-number" style="transform: rotate(150deg);"><span style="transform: rotate(-150deg);">5</span></div>
+          <div class="clock-number" style="transform: rotate(180deg);"><span style="transform: rotate(-180deg);">6</span></div>
+          <div class="clock-number" style="transform: rotate(210deg);"><span style="transform: rotate(-210deg);">7</span></div>
+          <div class="clock-number" style="transform: rotate(240deg);"><span style="transform: rotate(-240deg);">8</span></div>
+          <div class="clock-number" style="transform: rotate(270deg);"><span style="transform: rotate(-270deg);">9</span></div>
+          <div class="clock-number" style="transform: rotate(300deg);"><span style="transform: rotate(-300deg);">10</span></div>
+          <div class="clock-number" style="transform: rotate(330deg);"><span style="transform: rotate(-330deg);">11</span></div>
+          <div class="clock-number" style="transform: rotate(360deg);"><span style="transform: rotate(-360deg);">12</span></div>
+        
+          <div id="jam-jam-slider" class="clock-hand hour-hand" style="transform: rotate(0deg);"></div>
+          <div id="jam-minit-slider" class="clock-hand minute-hand" style="transform: rotate(0deg);"></div>
+          <div id="jam-saat-slider" class="clock-hand second-hand" style="transform: rotate(0deg);"></div>
+          <div class="clock-center"></div>
+        </div>
+
+        <div class="max-w-md mx-auto">
+          <div class="mb-4">
+            <label for="slider-jam" class="flex justify-between font-semibold text-gray-800">
+              <span>Jarum Jam</span>
+              <span id="label-jam">12 Jam</span>
+            </label>
+            <input type="range" min="1" max="12" value="12" id="slider-jam" class="w-full">
+          </div>
+          
+          <div class="mb-4">
+            <label for="slider-minit" class="flex justify-between font-semibold text-blue-700">
+              <span>Jarum Minit</span>
+              <span id="label-minit">0 Minit</span>
+            </label>
+            <input type="range" min="0" max="60" value="0" id="slider-minit" class="w-full">
+          </div>
+          
+          <div>
+            <label for="slider-saat" class="flex justify-between font-semibold text-red-700">
+              <span>Jarum Saat</span>
+              <span id="label-saat">0 Saat</span>
+            </label>
+            <input type="range" min="0" max="60" value="0" id="slider-saat" class="w-full">
+          </div>
+        </div>
+      `;
+      // === AKHIR HTML BARU ===
+
+      // Logik untuk Jarum JAM
+      const sliderJam = document.getElementById('slider-jam');
+      const handJam = document.getElementById('jam-jam-slider');
+      const labelJam = document.getElementById('label-jam');
+      
+      sliderJam.addEventListener('input', (e) => {
+        const jam = e.target.value; 
+        const darjah = (jam % 12) * 30; 
+        handJam.style.transform = `rotate(${darjah}deg)`;
+        labelJam.textContent = `${jam} Jam`;
+      });
+
+      // Logik untuk Jarum MINIT
+      const sliderMinit = document.getElementById('slider-minit');
+      const handMinit = document.getElementById('jam-minit-slider');
+      const labelMinit = document.getElementById('label-minit');
+      
+      sliderMinit.addEventListener('input', (e) => {
+        const minit = e.target.value;
+        const darjah = minit * 6;
+        handMinit.style.transform = `rotate(${darjah}deg)`;
+        labelMinit.textContent = `${minit} Minit`;
+      });
+
+      // Logik untuk Jarum SAAT
+      const sliderSaat = document.getElementById('slider-saat');
+      const handSaat = document.getElementById('jam-saat-slider');
+      const labelSaat = document.getElementById('label-saat');
+      
+      sliderSaat.addEventListener('input', (e) => {
+        const saat = e.target.value;
+        const darjah = saat * 6;
+        handSaat.style.transform = `rotate(${darjah}deg)`;
+        labelSaat.textContent = `${saat} Saat`;
+      });
+      
+      // Set nilai awal
+      sliderJam.value = 12;
+      sliderMinit.value = 0;
+      sliderSaat.value = 0;
+    }
+
+    /* ====== Kawalan Umum ====== */
+    function clearActivity() {
+      currentActivity = 0;
+      document.getElementById('activity-content').innerHTML = `
+        <div class="text-center py-16">
+          <div class="text-6xl mb-4">⏱️</div>
+          <h2 class="text-3xl font-bold text-gray-800 mb-4">Kemahiran Pemulihan: Masa dan Waktu</h2>
+          <p class="text-xl text-gray-600 mb-8">Pilih aktiviti di bawah untuk meneroka unit masa secara santai.</p>
+          <div class="text-4xl">👇</div>
+        </div>
+      `;
+      setInfo("Pilih aktiviti untuk mula belajar Masa dan Waktu!");
+    }
+    function nextActivity() {
+      if (currentActivity === 0) return loadActivity(1);
+      if (currentActivity < 5) return loadActivity(currentActivity + 1);
+      return loadActivity(1);
+    }
+
+    // Kekalkan TTS resume pada sesetengah pelayar
+    if ('speechSynthesis' in window) {
+      setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 1000);
+    }
+  </script>
+</body>
+</html>
